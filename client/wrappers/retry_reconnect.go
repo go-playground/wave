@@ -14,7 +14,14 @@ import (
 // with Rety and Reconnect logic.
 type RetryReconnectEndpoint interface {
 	client.Endpoint
+
+	// SetClient is called after a successful connection is established/reestablished
+	// NOTE: should close the existing client in this method if not nil prior to
+	// updating to the new one passed in.
 	SetClient(*rpc.Client)
+
+	// NewClient calls the RetryReconnectEndpoint's NewClient method
+	// wrapping it with retry/reconnect logic
 	NewClient() (*rpc.Client, error)
 }
 
@@ -51,6 +58,8 @@ type retryReconnect struct {
 var _ client.Endpoint = &retryReconnect{}
 var _ RetryReconnectEndpoint = &retryReconnect{}
 
+// NewClient calls the RetryReconnectEndpoint's NewClient method
+// wrapping it with retry/reconnect logic
 func (r *retryReconnect) NewClient() (c *rpc.Client, err error) {
 
 	r.reconnectMutex.Lock()
@@ -119,6 +128,8 @@ func (r *retryReconnect) NewClient() (c *rpc.Client, err error) {
 	return
 }
 
+// Call calls the RetryReconnectEndpoint's Call method
+// wrapping it with retry/reconnect logic
 func (r *retryReconnect) Call(args interface{}, reply interface{}) (err error) {
 
 	// check if disconnected
@@ -149,6 +160,8 @@ RETRY:
 	return
 }
 
+// Go calls the RetryReconnectEndpoint's Call method
+// wrapping it with retry/reconnect logic
 func (r *retryReconnect) Go(args interface{}, reply interface{}, done chan *rpc.Call) (c *rpc.Call) {
 
 	if done == nil {
