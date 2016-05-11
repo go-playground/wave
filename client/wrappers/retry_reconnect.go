@@ -98,7 +98,7 @@ func (r *retryReconnect) NewClient() (c *rpc.Client, err error) {
 			var client *rpc.Client
 			var err2 error
 
-			// time.Sleep(r.retryDuration)
+			time.Sleep(r.retryDuration)
 			client, err2 = r.RetryReconnectEndpoint.NewClient()
 			if err2 != nil {
 				time.Sleep(r.retryDuration)
