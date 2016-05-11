@@ -20,12 +20,13 @@ type RetryReconnectEndpoint interface {
 
 // RetryReconnect wraps the given RetryReconnectEndpoint endpoint and automatically
 // handles logic to reconnect and retry
-func RetryReconnect(endpoint RetryReconnectEndpoint) (e client.Endpoint, err error) {
+func RetryReconnect(endpoint RetryReconnectEndpoint, retryDuration time.Duration) (e client.Endpoint, err error) {
 
 	rr := &retryReconnect{
 		RetryReconnectEndpoint: endpoint,
 		clientMutex:            new(sync.RWMutex),
 		reconnectMutex:         new(sync.RWMutex),
+		retryDuration:          retryDuration,
 		isDisconnected:         true,
 	}
 
@@ -43,6 +44,7 @@ type retryReconnect struct {
 	RetryReconnectEndpoint
 	clientMutex    *sync.RWMutex
 	reconnectMutex *sync.RWMutex
+	retryDuration  time.Duration
 	isDisconnected bool // defaults to true
 }
 
@@ -71,7 +73,7 @@ func (r *retryReconnect) NewClient() (c *rpc.Client, err error) {
 	for i := 0; i < 3; i++ {
 		c, err = r.RetryReconnectEndpoint.NewClient()
 		if err != nil {
-			time.Sleep(time.Second)
+			time.Sleep(r.retryDuration)
 			continue
 		}
 
@@ -96,10 +98,10 @@ func (r *retryReconnect) NewClient() (c *rpc.Client, err error) {
 			var client *rpc.Client
 			var err2 error
 
-			time.Sleep(time.Second)
+			// time.Sleep(r.retryDuration)
 			client, err2 = r.RetryReconnectEndpoint.NewClient()
 			if err2 != nil {
-				time.Sleep(time.Second * 1)
+				time.Sleep(r.retryDuration)
 				continue
 			}
 
@@ -175,9 +177,10 @@ func (r *retryReconnect) Go(args interface{}, reply interface{}, done chan *rpc.
 
 	r.reconnectMutex.RUnlock()
 
+	dc := make(chan *rpc.Call, cap(done))
 	// make rpc call
 	r.clientMutex.RLock()
-	c2 := r.RetryReconnectEndpoint.Go(args, reply, make(chan *rpc.Call, cap(done)))
+	c2 := r.RetryReconnectEndpoint.Go(args, reply, dc)
 	r.clientMutex.RUnlock()
 
 	go func() {
@@ -192,7 +195,7 @@ func (r *retryReconnect) Go(args interface{}, reply interface{}, done chan *rpc.
 
 			// RETRY
 			r.clientMutex.RLock()
-			c2 = r.RetryReconnectEndpoint.Go(args, reply, make(chan *rpc.Call, cap(done)))
+			c2 = r.RetryReconnectEndpoint.Go(args, reply, dc)
 			r.clientMutex.RUnlock()
 
 			res = <-c2.Done
