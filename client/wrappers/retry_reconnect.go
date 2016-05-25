@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/go-playground/log"
+	"github.com/go-playground/log/handlers/console"
 	"github.com/go-playground/wave/client"
 )
 
@@ -28,6 +29,12 @@ type RetryReconnectEndpoint interface {
 // RetryReconnect wraps the given RetryReconnectEndpoint endpoint and automatically
 // handles logic to reconnect and retry
 func RetryReconnect(endpoint RetryReconnectEndpoint, retryDuration time.Duration) (e client.Endpoint, err error) {
+
+	if !log.HasHandlers() {
+		cLog := console.New()
+		cLog.SetBuffersAndWorkers(3, 3)
+		log.RegisterHandler(cLog, log.AllLevels...)
+	}
 
 	rr := &retryReconnect{
 		RetryReconnectEndpoint: endpoint,
@@ -79,10 +86,12 @@ func (r *retryReconnect) NewClient() (c *rpc.Client, err error) {
 	}
 	r.reconnectMutex.RUnlock()
 
-	for i := 0; i < 3; i++ {
+	for i := 1; i < 4; i++ {
+
 		c, err = r.RetryReconnectEndpoint.NewClient()
 		if err != nil {
 			time.Sleep(r.retryDuration)
+			log.WithFields(log.F("service", r.ServiceMethod()), log.F("attempt", i)).Warn("Attempting to established/re-establish RPC Connection")
 			continue
 		}
 
@@ -95,7 +104,7 @@ func (r *retryReconnect) NewClient() (c *rpc.Client, err error) {
 		return
 	}
 
-	log.WithFields(log.F("err", err)).Alert("RPC Connection could not be established/reestablished")
+	log.WithFields(log.F("service", r.ServiceMethod()), log.F("err", err)).Alert("RPC Connection could not be established/re-established")
 
 	go func() {
 
@@ -116,6 +125,7 @@ func (r *retryReconnect) NewClient() (c *rpc.Client, err error) {
 
 			r.SetClient(client)
 
+			log.WithFields(log.F("service", r.ServiceMethod())).Notice("RPC connection re-established")
 			r.reconnectMutex.Lock()
 			r.isDisconnected = false
 			r.reconnectMutex.Unlock()
