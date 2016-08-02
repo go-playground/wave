@@ -7,7 +7,7 @@ Package wave
 Package wave is a thin helper layer on top of Go's net/rpc
 
 ### Why?
-Ths intention of this library is to provide a thin wrapper around the std net/rpc package allowing
+The intention of this library is to provide a thin wrapper around the std net/rpc package allowing
 the user to add functionality via hooks instead of creating a whole new framework.
 
 **NOTES:** currently there are no hooks, first one will be hooking into the `Register` and `RegisterName`
