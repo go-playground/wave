@@ -1,4 +1,4 @@
-package server
+package wave
 
 import "net/rpc"
 
@@ -8,8 +8,8 @@ type Server struct {
 	*rpc.Server
 }
 
-// New creates and returns a new instance of 'Server'
-func New() *Server {
+// NewServer creates and returns a new instance of 'Server'
+func NewServer() *Server {
 	return new(Server)
 }
 

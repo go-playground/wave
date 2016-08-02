@@ -1,4 +1,4 @@
-package client
+package wave
 
 import (
 	"crypto/tls"
@@ -11,14 +11,14 @@ type ClientPool struct {
 	pool *sync.Pool
 }
 
-// NewPooled returns a new 'Client' instance backed by a pool of connections
-func NewPooled(network, address string, timeout time.Duration, config *tls.Config) *ClientPool {
+// NewClientPooled returns a new 'Client' instance backed by a pool of connections
+func NewClientPooled(serviceName, network, address string, timeout time.Duration, config *tls.Config) *ClientPool {
 
 	return &ClientPool{
 		pool: &sync.Pool{
 			New: func() interface{} {
 
-				c, err := New(network, address, timeout, config)
+				c, err := NewClient(serviceName, network, address, timeout, config)
 				if err != nil {
 					return err
 				}
