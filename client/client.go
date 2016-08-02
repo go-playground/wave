@@ -1,10 +1,40 @@
 package client
 
-import "net/rpc"
+import (
+	"crypto/tls"
+	"net"
+	"net/rpc"
+	"time"
+)
 
-// Endpoint is interface for use with Client methods
-type Endpoint interface {
-	ServiceMethod() string
-	Call(args interface{}, reply interface{}) error
-	Go(args interface{}, reply interface{}, done chan *rpc.Call) (c *rpc.Call)
+// Client encapsulates the standard rpc.Client allowing for adding of aditional functions
+// or hooking into existing rpc client functions.
+type Client struct {
+	*rpc.Client
+}
+
+// New creates and returns a new instance of 'Client'
+// config is optional, if 'nil' it is ignored
+func New(network, address string, timeout time.Duration, config *tls.Config) (*Client, error) {
+
+	if config == nil {
+
+		conn, err := net.DialTimeout(network, address, timeout)
+		if err != nil {
+			return nil, err
+		}
+
+		return &Client{rpc.NewClient(conn)}, nil
+	}
+
+	dialer := &net.Dialer{
+		Timeout: timeout,
+	}
+
+	conn, err := tls.DialWithDialer(dialer, network, address, config)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Client{rpc.NewClient(conn)}, nil
 }
