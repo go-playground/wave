@@ -10,7 +10,9 @@ type Server struct {
 
 // NewServer creates and returns a new instance of 'Server'
 func NewServer() *Server {
-	return new(Server)
+	return &Server{
+		Server: rpc.NewServer(),
+	}
 }
 
 // TODO: hook into `Register` and `RegisterName` functions to provide service discovery
