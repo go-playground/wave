@@ -8,14 +8,14 @@ import (
 
 // ClientPool allows for easy pooling of 'Client' connections
 type ClientPool struct {
-	pool *sync.Pool
+	*sync.Pool
 }
 
 // NewClientPooled returns a new 'Client' instance backed by a pool of connections
 func NewClientPooled(serviceName, network, address string, timeout time.Duration, config *tls.Config) *ClientPool {
 
 	return &ClientPool{
-		pool: &sync.Pool{
+		Pool: &sync.Pool{
 			New: func() interface{} {
 
 				c, err := NewClient(serviceName, network, address, timeout, config)
